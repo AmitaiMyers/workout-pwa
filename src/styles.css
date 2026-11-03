@@ -252,6 +252,8 @@ button:disabled {
 }
 
 .icon-button {
+  color: var(--text);
+  text-decoration: none;
   min-width: var(--tap);
   min-height: var(--tap);
   border-radius: 10px;
@@ -401,7 +403,7 @@ textarea.text-input {
 
 .chip {
   flex: none;
-  min-height: 36px;
+  min-height: var(--tap);
   padding: 0 12px;
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -610,7 +612,7 @@ textarea.text-input {
 }
 
 .segmented button {
-  min-height: 36px;
+  min-height: var(--tap);
   padding: 0 14px;
   border: none;
   border-radius: 8px;
@@ -779,7 +781,7 @@ textarea.text-input {
 
 .set-previous {
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -825,6 +827,10 @@ textarea.text-input {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+}
+
+.stat-row-tight {
+  margin-top: -8px;
 }
 
 .stat {
@@ -944,7 +950,7 @@ textarea.text-input {
 }
 
 .template-item-actions .icon-button {
-  min-width: 36px;
+  min-width: 40px;
   font-size: 1.05rem;
 }
 
@@ -956,8 +962,8 @@ textarea.text-input {
 
 .stepper .icon-button {
   background: var(--surface-2);
-  min-width: 36px;
-  min-height: 36px;
+  min-width: var(--tap);
+  min-height: var(--tap);
 }
 
 /* ---------- calendar ---------- */
@@ -1094,6 +1100,105 @@ textarea.text-input {
   color: var(--accent);
 }
 
+/* ---------- focused workout mode ---------- */
+
+.app-shell-focused .app-main {
+  padding-bottom: calc(var(--safe-bottom) + 96px);
+}
+
+.app-shell-focused .rest-bar {
+  bottom: calc(var(--safe-bottom) + 12px);
+}
+
+.elapsed-chip {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.workout-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: -6px;
+}
+
+.workout-progress-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.workout-progress-fill {
+  height: 100%;
+  background: var(--success);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.title-input-large {
+  font-size: 1.6rem;
+}
+
+.exercise-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+/* Visually compact, but the ::before extends the tap area to the 44px minimum. */
+.meta-chip {
+  position: relative;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.meta-chip::before {
+  content: '';
+  position: absolute;
+  inset: -6px -4px;
+}
+
+.weight-stepper {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.weight-stepper-value {
+  min-width: 96px;
+  text-align: center;
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.pr-badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  color: var(--success);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 /* ---------- navigation & banners ---------- */
 
 .bottom-nav {
@@ -1120,7 +1225,7 @@ textarea.text-input {
   gap: 2px;
   color: var(--muted);
   text-decoration: none;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .nav-icon {
@@ -1217,6 +1322,10 @@ textarea.text-input {
 @media (prefers-reduced-motion: reduce) {
   .pulse {
     animation: none;
+  }
+
+  .workout-progress-fill {
+    transition: none;
   }
 
   .rest-progress {

@@ -6,8 +6,8 @@ All data stays on your device (IndexedDB). There is no account and no server.
 
 ## Features
 
-- **Live workouts**: start an empty session or a template, add exercises, and reorder or remove them. The in-progress workout is saved continuously, so closing the app loses nothing.
-- **Set logging**: weight × reps, reps only, time, or distance + time, depending on the exercise. Each set can also have an RPE (1–10), a note and a warm-up flag.
+- **Live workouts**: start an empty session or a template, add exercises, and reorder or remove them. The in-progress workout is saved continuously, so closing the app loses nothing. The workout screen is a focused mode: the tab bar is hidden, a progress bar and per-exercise set counts show how far along you are, and the screen stays awake between sets (on browsers that support it).
+- **Set logging**: weight × reps, reps only, time, or distance + time, depending on the exercise. Each set can also have an RPE (tap 6 to 10), a note and a warm-up flag, and its weight can be changed with −/+ 2.5 kg buttons.
 - **Previous values**: each set shows what you did last time, and new sets are prefilled from it.
 - **Rest timer**: starts automatically when you tick a set done. The default rest time is per exercise and can be changed. Buttons for −15 s, +15 s and skip. Beeps when done, and vibrates on Android.
 - **Exercise library**: 39 built-in exercises across chest, back, legs, shoulders, arms, core and cardio. Each has an original SVG stick-figure animation and form cues. Filter by muscle or equipment, and add your own custom exercises.

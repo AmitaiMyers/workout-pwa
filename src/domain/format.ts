@@ -22,6 +22,17 @@ export function formatDuration(totalSec: number): string {
   return `${minutes}:${ss}`;
 }
 
+/** Human-readable length of a workout: "45m", "1h 05m", or "40s" when under a minute. */
+export function formatDurationWords(totalSec: number): string {
+  if (totalSec < 60) {
+    return `${Math.round(totalSec)}s`;
+  }
+  const minutes = Math.round(totalSec / 60);
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return hours > 0 ? `${hours}h ${String(rest).padStart(2, '0')}m` : `${rest}m`;
+}
+
 export function formatPace(secPerKm: number): string {
   return `${formatDuration(secPerKm)} /km`;
 }

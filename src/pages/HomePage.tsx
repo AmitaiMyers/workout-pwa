@@ -1,9 +1,10 @@
 import { Link } from 'react-router';
 import { Loading, PageHeader } from '../components/PageHeader';
 import { todayKey } from '../domain/dates';
-import { formatDate, formatDuration } from '../domain/format';
+import { formatDate, formatDurationWords, formatWeight } from '../domain/format';
+import { summarizeWeek } from '../domain/stats';
 import { listSchedule, listTemplates, listWorkouts } from '../storage/db';
-import { useDbQuery } from '../storage/hooks';
+import { useDbQuery, useExerciseCatalog } from '../storage/hooks';
 import { useActiveWorkout } from '../state/ActiveWorkoutContext';
 import { useWorkoutStarter } from '../state/useWorkoutStarter';
 
@@ -15,24 +16,44 @@ export function HomePage() {
   const templates = useDbQuery(listTemplates, []);
   const schedule = useDbQuery(listSchedule, []);
   const workouts = useDbQuery(listWorkouts, []);
+  const catalog = useExerciseCatalog();
 
-  if (templates === undefined || schedule === undefined || workouts === undefined || active.session === undefined) {
+  if (templates === undefined || schedule === undefined || workouts === undefined || catalog === undefined || active.session === undefined) {
     return <Loading />;
   }
 
   const templateById = new Map(templates.map((template) => [template.id, template]));
   const today = todayKey();
   const todaysPlan = schedule.filter((entry) => entry.date === today && entry.workoutId === null);
+  const week = summarizeWeek(workouts, new Date(), (id) => catalog.get(id).tracking);
+  // One primary action per screen: today's plan wins when there is one.
+  const emptyWorkoutStyle = todaysPlan.length > 0 || active.session !== null ? 'button-secondary' : 'button-primary button-large';
 
   return (
     <div className="page">
       <PageHeader title="Workout" />
 
+      <h2 className="group-title">This week</h2>
+      <section className="stat-row stat-row-tight" aria-label="This week">
+        <div className="stat">
+          <span className="stat-value">{week.workoutCount}</span>
+          <span className="stat-label">Workouts</span>
+        </div>
+        <div className="stat">
+          <span className="stat-value">{week.workingSetCount}</span>
+          <span className="stat-label">Sets</span>
+        </div>
+        <div className="stat">
+          <span className="stat-value">{formatWeight(week.volumeKg)}</span>
+          <span className="stat-label">Volume</span>
+        </div>
+      </section>
+
       {active.session !== null && (
         <section className="card highlight-card">
           <p className="muted small">In progress</p>
           <h2>{active.session.workout.name}</h2>
-          <p className="muted small">Started {formatDuration((Date.now() - active.session.workout.startedAt) / 1000)} ago</p>
+          <p className="muted small">Started {formatDurationWords((Date.now() - active.session.workout.startedAt) / 1000)} ago</p>
           <Link to="/workout" className="button button-primary button-block">
             Resume workout
           </Link>
@@ -61,7 +82,7 @@ export function HomePage() {
         </section>
       )}
 
-      <button type="button" className="button button-primary button-block button-large" onClick={() => void starter.startEmpty()}>
+      <button type="button" className={`button button-block ${emptyWorkoutStyle}`} onClick={() => void starter.startEmpty()}>
         Start empty workout
       </button>
 

@@ -34,7 +34,7 @@ export function ExerciseMedia({ exercise, video }: Props) {
           />
         </div>
       ) : (
-        <ExerciseAnimation animationId={exercise.animationId} animate className="figure-large" label={exercise.name} />
+        <ExerciseAnimation animationId={exercise.animationId} animate className="figure-large" label={exercise.name} framing="full" />
       )}
       {video !== null && !online && <p className="muted small center-text">Offline — showing the animation. The video plays when you're back online.</p>}
       {canPlayVideo && (

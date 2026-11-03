@@ -8,6 +8,7 @@ import { countDoneSets, countIncompleteSets } from '../domain/workoutFactory';
 import { listWorkouts } from '../storage/db';
 import { useDbQuery, useExerciseCatalog } from '../storage/hooks';
 import { useActiveWorkout } from '../state/ActiveWorkoutContext';
+import { useWakeLock } from '../state/useWakeLock';
 
 function ElapsedTime({ since }: { since: number }) {
   const [now, setNow] = useState(Date.now());
@@ -15,7 +16,11 @@ function ElapsedTime({ since }: { since: number }) {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
-  return <span className="elapsed">{formatDuration((now - since) / 1000)}</span>;
+  return (
+    <span className="elapsed-chip" aria-label="Elapsed time">
+      ⏱ {formatDuration((now - since) / 1000)}
+    </span>
+  );
 }
 
 export function ActiveWorkoutPage() {
@@ -23,6 +28,8 @@ export function ActiveWorkoutPage() {
   const catalog = useExerciseCatalog();
   const history = useDbQuery(listWorkouts, []);
   const navigate = useNavigate();
+  // Keep the phone awake between sets while a workout is open.
+  useWakeLock(active.session !== undefined && active.session !== null);
 
   if (active.session === undefined || catalog === undefined || history === undefined) {
     return <Loading />;
@@ -40,9 +47,11 @@ export function ActiveWorkoutPage() {
   }
 
   const { workout, rest } = active.session;
+  const doneSets = countDoneSets(workout);
+  const totalSets = doneSets + countIncompleteSets(workout);
 
   const finish = async () => {
-    if (countDoneSets(workout) === 0) {
+    if (doneSets === 0) {
       window.alert('Tick at least one set as done before finishing, or discard the workout.');
       return;
     }
@@ -64,6 +73,7 @@ export function ActiveWorkoutPage() {
   return (
     <div className={`page ${rest !== null ? 'page-with-rest' : ''}`}>
       <PageHeader
+        backTo="/"
         title={<ElapsedTime since={workout.startedAt} />}
         actions={
           <button type="button" className="button button-primary" onClick={() => void finish()}>
@@ -71,8 +81,16 @@ export function ActiveWorkoutPage() {
           </button>
         }
       />
+      <div className="workout-progress" role="progressbar" aria-label="Sets completed" aria-valuemin={0} aria-valuemax={totalSets} aria-valuenow={doneSets}>
+        <div className="workout-progress-track">
+          <div className="workout-progress-fill" style={{ transform: `scaleX(${totalSets === 0 ? 0 : doneSets / totalSets})` }} />
+        </div>
+        <span className="muted small">
+          {doneSets}/{totalSets} sets
+        </span>
+      </div>
       <input
-        className="title-input"
+        className="title-input title-input-large"
         aria-label="Workout name"
         value={workout.name}
         onChange={(event) => active.updateWorkout((current) => ({ ...current, name: event.target.value }))}

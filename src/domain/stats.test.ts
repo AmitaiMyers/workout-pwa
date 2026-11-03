@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estimateOneRepMax, metricsFor, metricValue, missingFields, newRecordsIn, personalRecords, previousSets, summarizeWorkout } from './stats';
+import { estimateOneRepMax, metricsFor, metricValue, missingFields, newRecordsIn, personalRecords, previousSets, summarizeWeek, summarizeWorkout } from './stats';
 import type { SetEntry, TrackingType, Workout } from './types';
 import { emptySet } from './workoutFactory';
 
@@ -93,5 +93,16 @@ describe('summarizeWorkout', () => {
   it('sums volume of working sets only', () => {
     const w = workout('a', 1, 'bench', [set({ weightKg: 60, reps: 10, isWarmup: true }), set({ weightKg: 80, reps: 5 }), set({ weightKg: 80, reps: 5 })]);
     expect(summarizeWorkout(w, trackingOf)).toEqual({ durationSec: 3600, workingSetCount: 2, volumeKg: 800 });
+  });
+});
+
+describe('summarizeWeek', () => {
+  it('totals only finished workouts from the start of this week', () => {
+    // Day numbers are days since the epoch; 1970-01-04 (day 3) was a Sunday.
+    const lastWeek = workout('old', 2, 'bench', [set({ weightKg: 100, reps: 10 })]);
+    const sunday = { ...workout('sun', 3, 'bench', [set({ weightKg: 50, reps: 10 })]), startedAt: new Date(1970, 0, 4, 10).getTime() };
+    const unfinished = { ...sunday, id: 'open', finishedAt: null };
+    const now = new Date(1970, 0, 6, 12);
+    expect(summarizeWeek([lastWeek, sunday, unfinished], now, trackingOf)).toEqual({ workoutCount: 1, workingSetCount: 1, volumeKg: 500 });
   });
 });

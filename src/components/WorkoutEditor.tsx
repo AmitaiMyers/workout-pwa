@@ -1,7 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import { Link } from 'react-router';
 import { ExerciseAnimation } from '../animation/ExerciseAnimation';
-import { formatDuration, formatSet } from '../domain/format';
+import { formatDuration, formatNumber, formatSet, formatWeight } from '../domain/format';
 import { missingFields, previousSets } from '../domain/stats';
 import type { Exercise, SetEntry, TrackingType, Workout, WorkoutExercise } from '../domain/types';
 import { moveItem, newWorkoutExercise, nextSet } from '../domain/workoutFactory';
@@ -103,6 +103,7 @@ function ExerciseCard({ entry, exercise, catalog, restSec, previous, mode, isFir
   const [menuOpen, setMenuOpen] = useState(false);
   const [showingDemo, setShowingDemo] = useState(false);
   const hasVideo = catalog.videoFor(exercise.id) !== null;
+  const doneCount = entry.sets.filter((set) => set.done).length;
   const [editingRest, setEditingRest] = useState(false);
   const [detailsSetId, setDetailsSetId] = useState<string | null>(null);
   const detailsSet = entry.sets.find((set) => set.id === detailsSetId);
@@ -119,7 +120,7 @@ function ExerciseCard({ entry, exercise, catalog, restSec, previous, mode, isFir
     <section className="card exercise-card">
       <header className="exercise-card-header">
         <button type="button" className="exercise-card-thumb" aria-label={`How to do ${exercise.name}`} onClick={() => setShowingDemo(true)}>
-          <ExerciseAnimation animationId={exercise.animationId} animate={mode === 'active'} className="thumb" label={exercise.name} />
+          <ExerciseAnimation animationId={exercise.animationId} animate={mode === 'active'} className="thumb" label={exercise.name} framing="fit" />
           {hasVideo && (
             <span className="video-badge" aria-hidden="true">
               ▶
@@ -130,11 +131,16 @@ function ExerciseCard({ entry, exercise, catalog, restSec, previous, mode, isFir
           <button type="button" className="exercise-card-name" onClick={() => setShowingDemo(true)}>
             {exercise.name}
           </button>
-          {mode === 'active' && (
-            <button type="button" className="link-button small" onClick={() => setEditingRest(true)}>
-              Rest {formatDuration(restSec)}
-            </button>
-          )}
+          <span className="exercise-card-meta">
+            <span className="muted small">
+              {doneCount}/{entry.sets.length} sets
+            </span>
+            {mode === 'active' && (
+              <button type="button" className="meta-chip" aria-label={`Rest time ${formatDuration(restSec)}, tap to change`} onClick={() => setEditingRest(true)}>
+                ⏱ {formatDuration(restSec)}
+              </button>
+            )}
+          </span>
         </div>
         <button type="button" className="icon-button" aria-label="Exercise options" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
           ⋯
@@ -184,6 +190,7 @@ function ExerciseCard({ entry, exercise, catalog, restSec, previous, mode, isFir
       {detailsSet !== undefined && (
         <SetDetails
           set={detailsSet}
+          tracking={exercise.tracking}
           onChange={(change) => onChange((current) => updateSet(current, detailsSet.id, change))}
           onDelete={() => {
             setDetailsSetId(null);
@@ -289,23 +296,59 @@ function SetRow({ set, label, previous, tracking, mode, onChange, onOpenDetails,
 
 interface SetDetailsProps {
   set: SetEntry;
+  tracking: TrackingType;
   onChange: (change: (set: SetEntry) => SetEntry) => void;
   onDelete: () => void;
   onClose: () => void;
 }
 
-function SetDetails({ set, onChange, onDelete, onClose }: SetDetailsProps) {
+/** Plate-friendly weight increment for the −/+ buttons. */
+const WEIGHT_STEP_KG = 2.5;
+/** Common RPE values; tapping the selected one again clears it. */
+const RPE_CHOICES = [6, 7, 7.5, 8, 8.5, 9, 9.5, 10] as const;
+
+function SetDetails({ set, tracking, onChange, onDelete, onClose }: SetDetailsProps) {
   const patch = (fields: Partial<SetEntry>) => onChange((current) => ({ ...current, ...fields }));
+  const stepWeight = (delta: number) =>
+    onChange((current) => ({ ...current, weightKg: Math.max(0, (current.weightKg ?? 0) + delta) }));
   return (
     <Modal title="Set details" onClose={onClose}>
+      {tracking === 'weight_reps' && (
+        <div className="field">
+          <span>Weight</span>
+          <div className="weight-stepper">
+            <button type="button" className="button button-secondary" onClick={() => stepWeight(-WEIGHT_STEP_KG)} disabled={(set.weightKg ?? 0) <= 0}>
+              −{formatNumber(WEIGHT_STEP_KG)}
+            </button>
+            <strong className="weight-stepper-value">{set.weightKg === null ? '–' : formatWeight(set.weightKg)}</strong>
+            <button type="button" className="button button-secondary" onClick={() => stepWeight(WEIGHT_STEP_KG)}>
+              +{formatNumber(WEIGHT_STEP_KG)}
+            </button>
+          </div>
+        </div>
+      )}
       <label className="toggle-row">
         <input type="checkbox" checked={set.isWarmup} onChange={(event) => patch({ isWarmup: event.target.checked })} />
         Warm-up set <span className="muted small">(excluded from records and volume)</span>
       </label>
-      <label className="field">
-        <span>RPE (1–10)</span>
-        <NumberInput value={set.rpe} onChange={(rpe) => patch({ rpe })} allowDecimals max={10} label="RPE" placeholder="e.g. 8" />
-      </label>
+      <div className="field">
+        <span>RPE — how hard was it?</span>
+        <div className="chip-grid" role="radiogroup" aria-label="RPE">
+          {RPE_CHOICES.map((value) => (
+            <button
+              type="button"
+              key={value}
+              role="radio"
+              aria-checked={set.rpe === value}
+              className={`chip ${set.rpe === value ? 'chip-active' : ''}`}
+              onClick={() => patch({ rpe: set.rpe === value ? null : value })}
+            >
+              {formatNumber(value)}
+            </button>
+          ))}
+        </div>
+        <span className="muted small">10 = max effort · 8 = 2 reps left in the tank</span>
+      </div>
       <label className="field">
         <span>Note</span>
         <input type="text" className="text-input" value={set.note} onChange={(event) => patch({ note: event.target.value })} placeholder="How did it feel?" />

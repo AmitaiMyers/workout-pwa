@@ -22,6 +22,12 @@ export function parseDateKey(key: string): Date {
   return new Date(Number(y), Number(m) - 1, Number(d));
 }
 
+/** Local midnight at the start of the week containing `date`. */
+export function startOfWeek(date: Date, weekStartsOn: number = WEEK_STARTS_ON): Date {
+  const daysSinceStart = (date.getDay() - weekStartsOn + 7) % 7;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() - daysSinceStart);
+}
+
 export function todayKey(): string {
   return toDateKey(new Date());
 }

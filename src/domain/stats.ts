@@ -1,4 +1,5 @@
 import { assert } from './assert';
+import { startOfWeek } from './dates';
 import { formatDistance, formatDuration, formatNumber, formatPace, formatWeight } from './format';
 import type { SetEntry, TrackingType, Workout } from './types';
 
@@ -194,4 +195,26 @@ export function summarizeWorkout(workout: Workout, trackingOf: (exerciseId: stri
     }
   }
   return { durationSec: (workout.finishedAt - workout.startedAt) / 1000, workingSetCount, volumeKg };
+}
+
+export interface PeriodSummary {
+  workoutCount: number;
+  workingSetCount: number;
+  volumeKg: number;
+}
+
+/** Totals for finished workouts started in the current week (see WEEK_STARTS_ON). */
+export function summarizeWeek(workouts: readonly Workout[], now: Date, trackingOf: (exerciseId: string) => TrackingType): PeriodSummary {
+  const weekStart = startOfWeek(now).getTime();
+  const thisWeek = workouts.filter((workout) => workout.finishedAt !== null && workout.startedAt >= weekStart && workout.startedAt <= now.getTime());
+  return thisWeek
+    .map((workout) => summarizeWorkout(workout, trackingOf))
+    .reduce<PeriodSummary>(
+      (total, summary) => ({
+        workoutCount: total.workoutCount + 1,
+        workingSetCount: total.workingSetCount + summary.workingSetCount,
+        volumeKg: total.volumeKg + summary.volumeKg,
+      }),
+      { workoutCount: 0, workingSetCount: 0, volumeKg: 0 },
+    );
 }

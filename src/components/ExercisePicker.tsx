@@ -65,7 +65,7 @@ function ExerciseFilters({ filter, onChange }: FiltersProps) {
 export function ExerciseRow({ exercise }: { exercise: Exercise }) {
   return (
     <>
-      <ExerciseAnimation animationId={exercise.animationId} animate={false} className="thumb" label={exercise.name} />
+      <ExerciseAnimation animationId={exercise.animationId} animate={false} className="thumb" label={exercise.name} framing="fit" />
       <span className="exercise-row-text">
         <span className="exercise-row-name">{exercise.name}</span>
         <span className="muted small">

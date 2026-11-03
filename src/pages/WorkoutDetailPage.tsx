@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Loading, PageHeader } from '../components/PageHeader';
 import { required } from '../domain/assert';
-import { formatDate, formatDuration, formatNumber, formatSet, formatTime, formatWeight } from '../domain/format';
+import { formatDate, formatDurationWords, formatNumber, formatSet, formatTime, formatWeight } from '../domain/format';
 import { newRecordsIn, summarizeWorkout } from '../domain/stats';
 import type { Workout } from '../domain/types';
 import { templateNameError } from '../domain/templates';
@@ -95,7 +95,7 @@ export function WorkoutDetailPage() {
       </p>
       <div className="stat-row">
         <div className="stat">
-          <span className="stat-value">{formatDuration(summary.durationSec)}</span>
+          <span className="stat-value">{formatDurationWords(summary.durationSec)}</span>
           <span className="stat-label">Duration</span>
         </div>
         <div className="stat">

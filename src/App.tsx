@@ -28,10 +28,12 @@ function ActiveWorkoutBanner() {
   );
 }
 
-export function App() {
+/** The live workout screen is a focused mode: no tab bar to tap by accident mid-set. */
+function Shell() {
+  const location = useLocation();
+  const focused = location.pathname === '/workout';
   return (
-    <HashRouter>
-      <ActiveWorkoutProvider>
+    <div className={`app-shell ${focused ? 'app-shell-focused' : ''}`}>
         <main className="app-main">
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -50,7 +52,16 @@ export function App() {
           </Routes>
         </main>
         <ActiveWorkoutBanner />
-        <BottomNav />
+        {!focused && <BottomNav />}
+    </div>
+  );
+}
+
+export function App() {
+  return (
+    <HashRouter>
+      <ActiveWorkoutProvider>
+        <Shell />
       </ActiveWorkoutProvider>
     </HashRouter>
   );

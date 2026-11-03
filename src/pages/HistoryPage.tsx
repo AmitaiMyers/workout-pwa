@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { Loading, PageHeader } from '../components/PageHeader';
-import { formatDate, formatDuration, formatMonth, formatWeight } from '../domain/format';
-import { summarizeWorkout } from '../domain/stats';
+import { formatDate, formatDurationWords, formatMonth, formatWeight } from '../domain/format';
+import { newRecordsIn, summarizeWorkout } from '../domain/stats';
 import type { Workout } from '../domain/types';
 import { listWorkouts } from '../storage/db';
 import { useDbQuery, useExerciseCatalog } from '../storage/hooks';
@@ -38,15 +38,23 @@ export function HistoryPage() {
           <ul className="plain-list">
             {group.workouts.map((workout) => {
               const summary = summarizeWorkout(workout, trackingOf);
+              const recordCount = newRecordsIn(workout, workouts, trackingOf).length;
               return (
                 <li key={workout.id}>
                   <Link to={`/history/${workout.id}`} className="card history-card">
                     <div className="section-header">
-                      <strong>{workout.name}</strong>
+                      <strong>
+                        {workout.name}
+                        {recordCount > 0 && (
+                          <span className="pr-badge" aria-label={`${recordCount} new personal records`}>
+                            🏆 {recordCount}
+                          </span>
+                        )}
+                      </strong>
                       <span className="muted small">{formatDate(workout.startedAt)}</span>
                     </div>
                     <p className="muted small">
-                      {formatDuration(summary.durationSec)} · {summary.workingSetCount} sets
+                      {formatDurationWords(summary.durationSec)} · {summary.workingSetCount} sets
                       {summary.volumeKg > 0 ? ` · ${formatWeight(summary.volumeKg)}` : ''}
                     </p>
                     <p className="small">{workout.exercises.map((entry) => catalog.get(entry.exerciseId).name).join(' · ')}</p>

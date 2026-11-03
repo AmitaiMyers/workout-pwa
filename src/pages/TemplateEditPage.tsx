@@ -71,7 +71,7 @@ export function TemplateEditPage() {
           const exercise = catalog.get(item.exerciseId);
           return (
             <li key={`${item.exerciseId}-${index}`} className="card template-item">
-              <ExerciseAnimation animationId={exercise.animationId} animate={false} className="thumb" label={exercise.name} />
+              <ExerciseAnimation animationId={exercise.animationId} animate={false} className="thumb" label={exercise.name} framing="fit" />
               <div className="template-item-body">
                 <strong>{exercise.name}</strong>
                 <div className="stepper">

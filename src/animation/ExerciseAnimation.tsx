@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BONES, poseAtPhase, solveSkeleton, type LimbJoints, type Skeleton, type Vec } from './kinematics';
-import { FLOOR_Y, getAnimation, type JointRef, type Prop } from './library';
+import { fittedViewBox, resolveJoint } from './geometry';
+import { FLOOR_Y, getAnimation, type Prop } from './library';
 
 interface Props {
   animationId: string | null;
@@ -10,11 +11,13 @@ interface Props {
   phase?: number;
   className?: string;
   label: string;
+  /** 'full' shows the whole scene; 'fit' zooms in on the figure (for small thumbnails). */
+  framing: 'full' | 'fit';
 }
 
 const STATIC_PHASE = 0.25;
 /** Extra headroom above y=0 so overhead lifts are not clipped. */
-const VIEW_BOX = "-4 -8 108 104";
+const FULL_VIEW_BOX = '-4 -8 108 104';
 
 function usePhase(durationMs: number, running: boolean): number {
   const [phase, setPhase] = useState(STATIC_PHASE);
@@ -32,15 +35,6 @@ function usePhase(durationMs: number, running: boolean): number {
     return () => cancelAnimationFrame(frameId);
   }, [durationMs, running]);
   return phase;
-}
-
-function resolveJoint(skeleton: Skeleton, ref: JointRef): Vec {
-  if (ref === 'pelvis' || ref === 'chest' || ref === 'head') {
-    return skeleton[ref];
-  }
-  const sideKey = ref.endsWith('N') ? 'near' : 'far';
-  const joint = ref.slice(0, -1) as keyof LimbJoints;
-  return skeleton[sideKey][joint];
 }
 
 function Segment({ from, to, className }: { from: Vec; to: Vec; className: string }) {
@@ -113,13 +107,13 @@ function PropShape({ prop, skeleton }: { prop: Prop; skeleton: Skeleton }) {
   }
 }
 
-export function ExerciseAnimation({ animationId, animate, phase, className, label }: Props) {
+export function ExerciseAnimation({ animationId, animate, phase, className, label, framing }: Props) {
   const spec = animationId === null ? null : getAnimation(animationId);
   const livePhase = usePhase(spec === null ? 1000 : spec.durationMs, animate && spec !== null && phase === undefined);
 
   if (spec === null) {
     return (
-      <svg viewBox={VIEW_BOX} className={`exercise-figure ${className ?? ''}`} role="img" aria-label={`${label} (no animation)`}>
+      <svg viewBox={FULL_VIEW_BOX} className={`exercise-figure ${className ?? ''}`} role="img" aria-label={`${label} (no animation)`}>
         <text x="50" y="54" textAnchor="middle" className="fig-placeholder">
           No animation
         </text>
@@ -133,7 +127,7 @@ export function ExerciseAnimation({ animationId, animate, phase, className, labe
   const neckBase = skeleton.chest;
 
   return (
-    <svg viewBox={VIEW_BOX} className={`exercise-figure ${className ?? ''}`} role="img" aria-label={`${label} animation`}>
+    <svg viewBox={framing === 'fit' ? fittedViewBox(spec) : FULL_VIEW_BOX} className={`exercise-figure ${className ?? ''}`} role="img" aria-label={`${label} animation`}>
       <line x1={4} y1={FLOOR_Y + 1.5} x2={96} y2={FLOOR_Y + 1.5} className="fig-floor" />
       {background.map((prop, index) => (
         <PropShape key={`bg-${index}`} prop={prop} skeleton={skeleton} />
