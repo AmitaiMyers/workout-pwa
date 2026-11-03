@@ -16,6 +16,15 @@ All data stays on your device (IndexedDB). There is no account and no server.
 - **Personal records**: estimated 1RM, heaviest weight, most reps, longest hold, longest distance and best pace. New PRs are highlighted when you finish a workout.
 - **Progress charts**: per-exercise trend for each metric.
 - **Calendar**: month view of completed (green), planned (orange) and missed (red) workouts. Plan a template on any future day and start it from the calendar or the home screen.
+- **Diet**: log what you eat in Breakfast / Lunch / Dinner / Snacks and see calories, protein, carbs and fat against your daily targets.
+  - **About 400 built-in foods**, searchable in English or Hebrew, with common servings. They come from USDA FoodData Central and work offline.
+  - **Online search and barcode scanning** of brand-name products via Open Food Facts. Android Chrome scans natively; iPhone uses a bundled scanner that loads on first use. A product that isn't found can be saved as your own food from its label, and then it's found instantly, even offline.
+  - **Quick add** of plain calories (e.g. a restaurant meal), **recent and favourite** foods, **saved meals** (a group of foods logged with one tap) and **recipes** (ingredients split into portions).
+  - **Targets from your profile**: Mifflin-St Jeor × activity, adjusted for a weekly lose/gain pace, with a safety floor. Protein defaults to 2 g/kg, fat to 25% of calories, carbs the rest. Any value can be overridden.
+  - **Body-weight log** with a trend chart; the latest weight updates your targets.
+  - **Home** shows today's calories and protein. The **calendar** marks food days as on target (±10%), over or under. **Trends** charts the last 7 or 28 days.
+  - An estimate of calories burned in workouts is shown for information only, and isn't added to your budget.
+- **Backup**: export all data (workouts and diet) to a file, and restore it on the same or a new phone (restoring replaces what's on the phone). Find it in Settings (⚙ on Home).
 
 ## Development
 
@@ -41,12 +50,19 @@ The app is then served at `https://<your-user>.github.io/workout-pwa/`. If you r
 - **iPhone (Safari)**: open the site, tap **Share → Add to Home Screen**. Always open the app from the home-screen icon: Safari can clear website storage for sites that aren't installed and haven't been used for a while.
 - **Android (Chrome)**: open the site and accept **Install app**, or use **⋮ → Install app**.
 
+## Data sources
+
+- Built-in foods: [USDA FoodData Central](https://fdc.nal.usda.gov/), SR Legacy (public domain, CC0). See `scripts/food-data/` to regenerate.
+- Online products: [Open Food Facts](https://world.openfoodfacts.org/), © Open Food Facts contributors, [ODbL](https://opendatacommons.org/licenses/odbl/1-0/). The app stays under its request limits.
+- Demo videos: embedded from YouTube; they belong to their creators.
+
 ## Project structure
 
 ```
 src/
   animation/   stick-figure kinematics (angles + 2-bone IK), animation library, SVG renderer
   domain/      types, exercise catalog, stats/records, workout factory, dates, formatting
+  domain/nutrition/  food types, built-in food data, portion maths, targets, log helpers, Open Food Facts client
   storage/     IndexedDB access (idb) and React query hooks
   state/       active-workout context (persisted session + rest timer), alerts
   components/  workout editor, exercise picker, chart, modal, inputs, navigation
@@ -57,4 +73,6 @@ src/
 
 - The rest-timer alert only fires while the app is open. Web apps can't run timers in the background on iOS without a push server.
 - Demo videos need a connection and depend on the uploader keeping the video public and embeddable. If one shows "Video unavailable", change the link on that exercise's page.
-- Data lives only on this device. Clearing the browser or site data deletes it.
+- Data lives only on this device. Clearing the browser or site data deletes it, so export a backup now and then.
+- Calorie targets and workout burn are estimates from standard formulas, not medical advice.
+- The calendar and trends compare past days against today's targets.

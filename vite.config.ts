@@ -31,6 +31,14 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        // The ~1 MB barcode engine (iPhone only) is cached on first scan instead of on install.
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.endsWith('.wasm'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'barcode-engine', expiration: { maxEntries: 2 } },
+          },
+        ],
       },
     }),
   ],

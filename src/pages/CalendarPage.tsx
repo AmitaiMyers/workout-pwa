@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { Loading, PageHeader } from '../components/PageHeader';
-import { newId } from '../domain/assert';
+import { newId, required } from '../domain/assert';
 import { dateKeyOf, monthGrid, parseDateKey, todayKey, weekdayLabels } from '../domain/dates';
 import { formatDate, formatMonth } from '../domain/format';
 import type { ScheduleEntry, Template, Workout } from '../domain/types';
 import { deleteScheduleEntry, listSchedule, listTemplates, listWorkouts, saveScheduleEntry } from '../storage/db';
 import { useDbQuery } from '../storage/hooks';
+import { formatGrams, formatKcal } from '../domain/format';
+import type { Macros } from '../domain/nutrition/foodTypes';
+import { dayStatus, totalsByDate } from '../domain/nutrition/log';
+import { listFoodLogRange } from '../storage/db';
+import { useNutritionSetup } from '../storage/nutritionHooks';
 import { useWorkoutStarter } from '../state/useWorkoutStarter';
 
 type DayStatus = 'done' | 'planned' | 'missed';
@@ -38,13 +43,26 @@ export function CalendarPage() {
     return { year: now.getFullYear(), index: now.getMonth() };
   });
   const [selected, setSelected] = useState(today);
+  const grid = monthGrid(month.year, month.index);
+  const gridFrom = required(grid[0]?.[0], 'Month grid has a first day').key;
+  const gridTo = required(grid[grid.length - 1]?.[6], 'Month grid has a last day').key;
+  const foodLog = useDbQuery(() => listFoodLogRange(gridFrom, gridTo), [gridFrom, gridTo]);
+  const nutrition = useNutritionSetup();
 
-  if (workouts === undefined || schedule === undefined || templates === undefined) {
+  if (workouts === undefined || schedule === undefined || templates === undefined || foodLog === undefined || nutrition === undefined) {
     return <Loading />;
   }
 
   const workoutsByDay = groupBy(workouts, (workout) => dateKeyOf(workout.startedAt));
   const scheduleByDay = groupBy(schedule, (entry) => entry.date);
+  const foodByDay = totalsByDate(foodLog);
+  const targetKcal = nutrition.targets?.macros.kcal ?? null;
+  // Without a target, a logged day is just "logged"; with one it's on target / over / under.
+  const foodClass = (dayKey: string): string | null => {
+    const totals = foodByDay.get(dayKey);
+    if (totals === undefined) return null;
+    return targetKcal === null ? 'diet-logged' : `diet-${dayStatus(totals.kcal, targetKcal)}`;
+  };
   const shiftMonth = (delta: number) => {
     const date = new Date(month.year, month.index + delta, 1);
     setMonth({ year: date.getFullYear(), index: date.getMonth() });
@@ -80,7 +98,8 @@ export function CalendarPage() {
             {label}
           </span>
         ))}
-        {monthGrid(month.year, month.index).flat().map((day) => {
+        {grid.flat().map((day) => {
+          const food = foodClass(day.key);
           const statuses = statusesFor(day.key, today, workoutsByDay.get(day.key) ?? [], scheduleByDay.get(day.key) ?? []);
           return (
             <button
@@ -88,7 +107,7 @@ export function CalendarPage() {
               key={day.key}
               className={`calendar-day ${day.inMonth ? '' : 'calendar-day-outside'} ${day.key === today ? 'calendar-today' : ''} ${day.key === selected ? 'calendar-selected' : ''}`}
               onClick={() => setSelected(day.key)}
-              aria-label={`${formatDate(parseDateKey(day.key).getTime())}${statuses.length > 0 ? `: ${statuses.join(', ')}` : ''}`}
+              aria-label={`${formatDate(parseDateKey(day.key).getTime())}${statuses.length > 0 ? `: ${statuses.join(', ')}` : ''}${food === null ? '' : `, food ${food.replace('diet-', '').replace('-', ' ')}`}`}
             >
               <span>{day.dayOfMonth}</span>
               <span className="calendar-dots">
@@ -96,6 +115,7 @@ export function CalendarPage() {
                   <span key={status} className={`dot dot-${status}`} />
                 ))}
               </span>
+              <span className={`diet-bar ${food ?? ''}`} aria-hidden="true" />
             </button>
           );
         })}
@@ -105,12 +125,27 @@ export function CalendarPage() {
         <span><span className="dot dot-planned" /> Planned</span>
         <span><span className="dot dot-missed" /> Missed</span>
       </div>
+      {foodByDay.size > 0 && (
+        <div className="legend muted small">
+          {targetKcal === null ? (
+            <span><span className="legend-bar diet-logged" /> Food logged</span>
+          ) : (
+            <>
+              <span><span className="legend-bar diet-on-target" /> On target (±10%)</span>
+              <span><span className="legend-bar diet-over" /> Over</span>
+              <span><span className="legend-bar diet-under" /> Under</span>
+            </>
+          )}
+        </div>
+      )}
       <DayPanel
         dayKey={selected}
         today={today}
         workouts={workoutsByDay.get(selected) ?? []}
         entries={scheduleByDay.get(selected) ?? []}
         templates={templates}
+        food={foodByDay.get(selected) ?? null}
+        targetKcal={targetKcal}
       />
     </div>
   );
@@ -122,9 +157,12 @@ interface DayPanelProps {
   workouts: readonly Workout[];
   entries: readonly ScheduleEntry[];
   templates: readonly Template[];
+  /** Totals of food logged that day, or null when nothing was logged. */
+  food: Macros | null;
+  targetKcal: number | null;
 }
 
-function DayPanel({ dayKey, today, workouts, entries, templates }: DayPanelProps) {
+function DayPanel({ dayKey, today, workouts, entries, templates, food, targetKcal }: DayPanelProps) {
   const starter = useWorkoutStarter();
   const [templateId, setTemplateId] = useState('');
   const templateById = new Map(templates.map((template) => [template.id, template]));
@@ -144,7 +182,17 @@ function DayPanel({ dayKey, today, workouts, entries, templates }: DayPanelProps
   return (
     <section className="card">
       <h2>{formatDate(parseDateKey(dayKey).getTime())}</h2>
-      {workouts.length === 0 && entries.length === 0 && <p className="muted">Nothing on this day.</p>}
+      {workouts.length === 0 && entries.length === 0 && food === null && <p className="muted">Nothing on this day.</p>}
+      {food !== null && (
+        <Link to={dayKey === today ? '/diet' : `/diet?date=${dayKey}`} className="list-row list-link">
+          <span>
+            Food: {formatKcal(food.kcal)}
+            {targetKcal === null ? '' : ` of ${formatKcal(targetKcal)}`}
+            <span className="muted small"> · Protein {formatGrams(food.protein)}</span>
+          </span>
+          <span className="muted small">View</span>
+        </Link>
+      )}
       <ul className="plain-list">
         {workouts.map((workout) => (
           <li key={workout.id}>

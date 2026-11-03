@@ -76,3 +76,15 @@ export function formatSet(set: SetEntry, tracking: TrackingType): string {
       return `${show(set.distanceKm)} km in ${set.durationSec === null ? '–' : formatDuration(set.durationSec)}`;
   }
 }
+
+const integerFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+
+/** "1,850 kcal" */
+export function formatKcal(kcal: number): string {
+  return `${integerFormatter.format(Math.round(kcal))} kcal`;
+}
+
+/** Macro grams: whole numbers from 10 g up, one decimal below. */
+export function formatGrams(grams: number): string {
+  return `${grams >= 10 ? Math.round(grams) : Math.round(grams * 10) / 10} g`;
+}
