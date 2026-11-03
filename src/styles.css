@@ -359,6 +359,18 @@ textarea.text-input {
   color: var(--muted);
 }
 
+.field-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.save-template-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-basis: 100%;
+}
+
 .problem-list {
   color: var(--danger);
   margin: 0;

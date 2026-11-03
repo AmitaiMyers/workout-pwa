@@ -7,8 +7,9 @@ import { Loading, PageHeader } from '../components/PageHeader';
 import { assert, newId } from '../domain/assert';
 import type { Template, TemplateExercise } from '../domain/types';
 import { moveItem } from '../domain/workoutFactory';
-import { deleteTemplate, getTemplate, saveTemplate } from '../storage/db';
-import { useExerciseCatalog } from '../storage/hooks';
+import { templateNameError } from '../domain/templates';
+import { deleteTemplate, getTemplate, listTemplates, saveTemplate } from '../storage/db';
+import { useDbQuery, useExerciseCatalog } from '../storage/hooks';
 
 const DEFAULT_SET_COUNT = 3;
 const MAX_SET_COUNT = 20;
@@ -19,6 +20,7 @@ export function TemplateEditPage() {
   const isNew = id === 'new';
   const navigate = useNavigate();
   const catalog = useExerciseCatalog();
+  const templates = useDbQuery(listTemplates, []);
   const [draft, setDraft] = useState<Template | undefined>(isNew ? { id: newId(), name: '', exercises: [] } : undefined);
   const [picking, setPicking] = useState(false);
 
@@ -30,14 +32,15 @@ export function TemplateEditPage() {
     });
   }, [id, isNew]);
 
-  if (draft === undefined || catalog === undefined) {
+  if (draft === undefined || catalog === undefined || templates === undefined) {
     return <Loading />;
   }
 
   const setItems = (exercises: TemplateExercise[]) => setDraft({ ...draft, exercises });
   const updateItem = (index: number, setCount: number) =>
     setItems(draft.exercises.map((item, i) => (i === index ? { ...item, setCount } : item)));
-  const valid = draft.name.trim() !== '' && draft.exercises.length > 0;
+  const nameError = templateNameError(draft.name, templates, draft.id);
+  const valid = nameError === null && draft.exercises.length > 0;
 
   const save = async () => {
     await saveTemplate({ ...draft, name: draft.name.trim() });
@@ -62,6 +65,7 @@ export function TemplateEditPage() {
         }
       />
       <input className="title-input" aria-label="Template name" placeholder="Template name, e.g. Push Day" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
+      {draft.name.trim() !== '' && nameError !== null && <p className="field-error">{nameError}</p>}
       <ul className="plain-list">
         {draft.exercises.map((item, index) => {
           const exercise = catalog.get(item.exerciseId);

@@ -3,6 +3,8 @@
  * Every write notifies subscribers so open screens re-read fresh data.
  */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { assert } from '../domain/assert';
+import { templateNameError } from '../domain/templates';
 import type { ActiveSession, Exercise, RestOverride, ScheduleEntry, Template, Workout } from '../domain/types';
 
 const DB_NAME = 'workout-pwa';
@@ -132,8 +134,15 @@ export async function getTemplate(id: string): Promise<Template | undefined> {
   return (await db()).get('templates', id);
 }
 
+/** Rejects a duplicate name; the check and the write share one transaction so they cannot race. */
 export function saveTemplate(template: Template): Promise<void> {
-  return write((database) => database.put('templates', template));
+  return write(async (database) => {
+    const tx = database.transaction('templates', 'readwrite');
+    const nameError = templateNameError(template.name, await tx.store.getAll(), template.id);
+    assert(nameError === null, nameError ?? '');
+    await tx.store.put(template);
+    await tx.done;
+  });
 }
 
 /** Deleting a template also removes its calendar entries, which would otherwise point nowhere. */

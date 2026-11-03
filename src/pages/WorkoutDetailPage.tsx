@@ -5,13 +5,18 @@ import { required } from '../domain/assert';
 import { formatDate, formatDuration, formatNumber, formatSet, formatTime, formatWeight } from '../domain/format';
 import { newRecordsIn, summarizeWorkout } from '../domain/stats';
 import type { Workout } from '../domain/types';
+import { templateNameError } from '../domain/templates';
 import { templateFromWorkout } from '../domain/workoutFactory';
-import { deleteWorkout, listWorkouts, saveTemplate } from '../storage/db';
+import { deleteWorkout, listTemplates, listWorkouts, saveTemplate } from '../storage/db';
 import { useDbQuery, useExerciseCatalog } from '../storage/hooks';
 
 function SaveAsTemplate({ workout }: { workout: Workout }) {
   const [name, setName] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const templates = useDbQuery(listTemplates, []);
+  if (templates === undefined) {
+    return null;
+  }
   if (saved) {
     return <p className="muted small">Saved as a template.</p>;
   }
@@ -22,18 +27,23 @@ function SaveAsTemplate({ workout }: { workout: Workout }) {
       </button>
     );
   }
+  // A brand-new template has no id yet, so every existing template counts as a clash.
+  const nameError = templateNameError(name, templates, null);
   return (
     <form
-      className="inline-form"
+      className="save-template-form"
       onSubmit={(event) => {
         event.preventDefault();
         void saveTemplate(templateFromWorkout(workout, name.trim())).then(() => setSaved(true));
       }}
     >
-      <input className="text-input" aria-label="Template name" value={name} onChange={(event) => setName(event.target.value)} autoFocus />
-      <button type="submit" className="button button-primary" disabled={name.trim() === ''}>
-        Save
-      </button>
+      <div className="inline-form">
+        <input className="text-input" aria-label="Template name" value={name} onChange={(event) => setName(event.target.value)} autoFocus />
+        <button type="submit" className="button button-primary" disabled={nameError !== null}>
+          Save
+        </button>
+      </div>
+      {name.trim() !== '' && nameError !== null && <p className="field-error">{nameError}</p>}
     </form>
   );
 }
