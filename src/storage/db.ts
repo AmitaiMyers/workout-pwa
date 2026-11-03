@@ -5,10 +5,11 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { assert } from '../domain/assert';
 import { templateNameError } from '../domain/templates';
-import type { ActiveSession, Exercise, RestOverride, ScheduleEntry, Template, Workout } from '../domain/types';
+import type { ActiveSession, Exercise, RestOverride, ScheduleEntry, Template, VideoOverride, Workout } from '../domain/types';
 
 const DB_NAME = 'workout-pwa';
-const DB_VERSION = 1;
+/** Bump when adding stores; `upgrade` migrates step by step so existing data is kept. */
+const DB_VERSION = 2;
 const ACTIVE_KEY = 'current';
 
 interface WorkoutDb extends DBSchema {
@@ -17,6 +18,7 @@ interface WorkoutDb extends DBSchema {
   schedule: { key: string; value: ScheduleEntry; indexes: { date: string } };
   customExercises: { key: string; value: Exercise };
   restOverrides: { key: string; value: RestOverride };
+  videoOverrides: { key: string; value: VideoOverride };
   active: { key: string; value: ActiveSession };
 }
 
@@ -25,15 +27,20 @@ let dbPromise: Promise<IDBPDatabase<WorkoutDb>> | null = null;
 function db(): Promise<IDBPDatabase<WorkoutDb>> {
   if (dbPromise === null) {
     dbPromise = openDB<WorkoutDb>(DB_NAME, DB_VERSION, {
-      upgrade(database) {
-        const workouts = database.createObjectStore('workouts', { keyPath: 'id' });
-        workouts.createIndex('startedAt', 'startedAt');
-        database.createObjectStore('templates', { keyPath: 'id' });
-        const schedule = database.createObjectStore('schedule', { keyPath: 'id' });
-        schedule.createIndex('date', 'date');
-        database.createObjectStore('customExercises', { keyPath: 'id' });
-        database.createObjectStore('restOverrides', { keyPath: 'exerciseId' });
-        database.createObjectStore('active');
+      upgrade(database, oldVersion) {
+        if (oldVersion < 1) {
+          const workouts = database.createObjectStore('workouts', { keyPath: 'id' });
+          workouts.createIndex('startedAt', 'startedAt');
+          database.createObjectStore('templates', { keyPath: 'id' });
+          const schedule = database.createObjectStore('schedule', { keyPath: 'id' });
+          schedule.createIndex('date', 'date');
+          database.createObjectStore('customExercises', { keyPath: 'id' });
+          database.createObjectStore('restOverrides', { keyPath: 'exerciseId' });
+          database.createObjectStore('active');
+        }
+        if (oldVersion < 2) {
+          database.createObjectStore('videoOverrides', { keyPath: 'exerciseId' });
+        }
       },
     });
   }
@@ -192,4 +199,17 @@ export async function listRestOverrides(): Promise<RestOverride[]> {
 
 export function saveRestOverride(override: RestOverride): Promise<void> {
   return write((database) => database.put('restOverrides', override));
+}
+
+export async function listVideoOverrides(): Promise<VideoOverride[]> {
+  return (await db()).getAll('videoOverrides');
+}
+
+export function saveVideoOverride(override: VideoOverride): Promise<void> {
+  return write((database) => database.put('videoOverrides', override));
+}
+
+/** Go back to the exercise's built-in default video. */
+export function deleteVideoOverride(exerciseId: string): Promise<void> {
+  return write((database) => database.delete('videoOverrides', exerciseId));
 }

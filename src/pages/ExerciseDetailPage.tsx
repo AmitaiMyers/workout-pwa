@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ExerciseAnimation } from '../animation/ExerciseAnimation';
+import { ExerciseMedia } from '../components/ExerciseMedia';
 import { LineChart } from '../components/LineChart';
 import { Loading, PageHeader } from '../components/PageHeader';
+import { VideoLinkEditor } from '../components/VideoLinkEditor';
 import { required } from '../domain/assert';
 import { formatDate, formatDuration, formatSet } from '../domain/format';
 import { exerciseSessions, metricsFor, metricValue, personalRecords, type MetricKey } from '../domain/stats';
@@ -82,7 +83,7 @@ export function ExerciseDetailPage() {
   return (
     <div className="page">
       <PageHeader title={exercise.name} back />
-      <ExerciseAnimation animationId={exercise.animationId} animate className="figure-large" label={exercise.name} />
+      <ExerciseMedia exercise={exercise} video={catalog.videoFor(exercise.id)} />
       <div className="tag-row">
         {exercise.muscles.map((muscle, index) => (
           <span key={muscle} className={`tag ${index === 0 ? 'tag-primary' : ''}`}>
@@ -152,6 +153,8 @@ export function ExerciseDetailPage() {
           ))}
         </ul>
       </section>
+
+      <VideoLinkEditor exercise={exercise} catalog={catalog} />
 
       {exercise.isCustom && <CustomExerciseActions exercise={exercise} />}
     </div>

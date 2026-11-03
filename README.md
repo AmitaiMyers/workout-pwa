@@ -11,6 +11,7 @@ All data stays on your device (IndexedDB). There is no account and no server.
 - **Previous values**: each set shows what you did last time, and new sets are prefilled from it.
 - **Rest timer**: starts automatically when you tick a set done. The default rest time is per exercise and can be changed. Buttons for −15 s, +15 s and skip. Beeps when done, and vibrates on Android.
 - **Exercise library**: 39 built-in exercises across chest, back, legs, shoulders, arms, core and cardio. Each has an original SVG stick-figure animation and form cues. Filter by muscle or equipment, and add your own custom exercises.
+- **Demo videos**: every built-in exercise links a YouTube demo, from CrossFit's channel where one exists. Videos play muted and looping, like a GIF, through YouTube's privacy-enhanced embed. They are never downloaded. On an exercise's page you can paste any YouTube link to change the video, remove it, or reset it to the default. During a workout, tap an exercise's thumbnail or name to watch the demo without leaving the workout. Offline, the stick-figure animation shows instead.
 - **History**: workout detail (duration, sets, volume) with edit and delete. You can save any workout as a template.
 - **Personal records**: estimated 1RM, heaviest weight, most reps, longest hold, longest distance and best pace. New PRs are highlighted when you finish a workout.
 - **Progress charts**: per-exercise trend for each metric.
@@ -55,4 +56,5 @@ src/
 ## Known limitations
 
 - The rest-timer alert only fires while the app is open. Web apps can't run timers in the background on iOS without a push server.
+- Demo videos need a connection and depend on the uploader keeping the video public and embeddable. If one shows "Video unavailable", change the link on that exercise's page.
 - Data lives only on this device. Clearing the browser or site data deletes it.

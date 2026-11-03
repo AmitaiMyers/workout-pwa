@@ -8,6 +8,7 @@ import { moveItem, newWorkoutExercise, nextSet } from '../domain/workoutFactory'
 import { saveRestOverride } from '../storage/db';
 import type { ExerciseCatalog } from '../storage/hooks';
 import { ExerciseBrowser } from './ExercisePicker';
+import { ExerciseQuickView } from './ExerciseQuickView';
 import { Modal } from './Modal';
 import { DurationInput, NumberInput } from './NumberInput';
 
@@ -52,6 +53,7 @@ export function WorkoutEditor({ workout, onChange, mode, catalog, history, onSet
           key={entry.id}
           entry={entry}
           exercise={catalog.get(entry.exerciseId)}
+          catalog={catalog}
           restSec={catalog.restSecFor(entry.exerciseId)}
           previous={previousFor(entry.exerciseId)}
           mode={mode}
@@ -85,6 +87,7 @@ export function WorkoutEditor({ workout, onChange, mode, catalog, history, onSet
 interface CardProps {
   entry: WorkoutExercise;
   exercise: Exercise;
+  catalog: ExerciseCatalog;
   restSec: number;
   previous: SetEntry[];
   mode: EditorMode;
@@ -96,8 +99,10 @@ interface CardProps {
   onSetCompleted?: (exercise: Exercise) => void;
 }
 
-function ExerciseCard({ entry, exercise, restSec, previous, mode, isFirst, isLast, onChange, onMove, onRemove, onSetCompleted }: CardProps) {
+function ExerciseCard({ entry, exercise, catalog, restSec, previous, mode, isFirst, isLast, onChange, onMove, onRemove, onSetCompleted }: CardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showingDemo, setShowingDemo] = useState(false);
+  const hasVideo = catalog.videoFor(exercise.id) !== null;
   const [editingRest, setEditingRest] = useState(false);
   const [detailsSetId, setDetailsSetId] = useState<string | null>(null);
   const detailsSet = entry.sets.find((set) => set.id === detailsSetId);
@@ -113,13 +118,18 @@ function ExerciseCard({ entry, exercise, restSec, previous, mode, isFirst, isLas
   return (
     <section className="card exercise-card">
       <header className="exercise-card-header">
-        <Link to={`/exercises/${exercise.id}`} className="exercise-card-thumb" aria-label={`How to do ${exercise.name}`}>
+        <button type="button" className="exercise-card-thumb" aria-label={`How to do ${exercise.name}`} onClick={() => setShowingDemo(true)}>
           <ExerciseAnimation animationId={exercise.animationId} animate={mode === 'active'} className="thumb" label={exercise.name} />
-        </Link>
+          {hasVideo && (
+            <span className="video-badge" aria-hidden="true">
+              ▶
+            </span>
+          )}
+        </button>
         <div className="exercise-card-title">
-          <Link to={`/exercises/${exercise.id}`} className="exercise-card-name">
+          <button type="button" className="exercise-card-name" onClick={() => setShowingDemo(true)}>
             {exercise.name}
-          </Link>
+          </button>
           {mode === 'active' && (
             <button type="button" className="link-button small" onClick={() => setEditingRest(true)}>
               Rest {formatDuration(restSec)}
@@ -181,6 +191,10 @@ function ExerciseCard({ entry, exercise, restSec, previous, mode, isFirst, isLas
           }}
           onClose={() => setDetailsSetId(null)}
         />
+      )}
+      {showingDemo && (
+        // Leaving mid-workout is safe (it is saved continuously) but would drop unsaved edits of a past workout.
+        <ExerciseQuickView exercise={exercise} catalog={catalog} showDetailsLink={mode === 'active'} onClose={() => setShowingDemo(false)} />
       )}
       {editingRest && <RestEditor exercise={exercise} restSec={restSec} onClose={() => setEditingRest(false)} />}
     </section>

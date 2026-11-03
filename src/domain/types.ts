@@ -100,3 +100,15 @@ export interface RestOverride {
   exerciseId: string;
   restSec: number;
 }
+
+/** A YouTube video and where to start playing it. */
+export interface VideoRef {
+  id: string;
+  startSec: number;
+}
+
+/** The user's choice of video for an exercise; `video: null` means "no video" (removed on purpose). */
+export interface VideoOverride {
+  exerciseId: string;
+  video: VideoRef | null;
+}
