@@ -8,6 +8,7 @@ import type { ActivityLevel, Goal, Profile, Sex, TargetOverrides } from '../doma
 import { ACTIVITY_LABELS, dailyTargets, GOAL_LABELS } from '../domain/nutrition/targets';
 import { exportBackup, restoreBackup, saveProfile, saveWeight, validateBackup } from '../storage/db';
 import { useNutritionSetup } from '../storage/nutritionHooks';
+import { deliverFile, importErrorMessage, jsonFile, readJsonFile } from '../state/files';
 
 const LOSE_PACES = [0.25, 0.5, 0.75, 1] as const;
 const GAIN_PACES = [0.25, 0.5] as const;
@@ -197,38 +198,19 @@ function backupFileName(): string {
   return `workout-log-backup-${todayKey()}.json`;
 }
 
-/** Share sheet where available (iPhone: save to Files/iCloud), otherwise a normal download. */
-async function deliverFile(file: File): Promise<void> {
-  if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
-    // Cancelling the share sheet is a normal choice, not an error.
-    await navigator.share({ files: [file], title: 'Workout Log backup' }).then(undefined, (reason: unknown) => {
-      if (!(reason instanceof DOMException && reason.name === 'AbortError')) throw reason;
-    });
-    return;
-  }
-  const url = URL.createObjectURL(file);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = file.name;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 function BackupSection() {
   const [message, setMessage] = useState<{ kind: 'info' | 'error'; text: string } | null>(null);
 
   const exportAll = async () => {
     const backup = await exportBackup();
-    const file = new File([JSON.stringify(backup)], backupFileName(), { type: 'application/json' });
-    await deliverFile(file);
+    const file = jsonFile(backup, backupFileName());
+    await deliverFile(file, 'Workout Log backup');
     setMessage({ kind: 'info', text: `Backup created (${Math.ceil(file.size / 1024)} KB). Keep it somewhere safe, like iCloud Drive or Google Drive.` });
   };
 
   const importFile = (file: File) => {
     // A user-picked file may be anything: parsing and validation failures become a visible message.
-    void file
-      .text()
-      .then((text) => new Response(text).json() as Promise<unknown>)
+    void readJsonFile(file)
       .then(validateBackup)
       .then(
         async (backup) => {
@@ -238,7 +220,7 @@ function BackupSection() {
           // Reload so every screen (and the in-progress workout) re-reads the restored data.
           window.location.reload();
         },
-        (reason: unknown) => setMessage({ kind: 'error', text: reason instanceof SyntaxError ? 'This file is not a Workout Log backup.' : reason instanceof Error ? reason.message : 'Could not read the file.' }),
+        (reason: unknown) => setMessage({ kind: 'error', text: importErrorMessage(reason, 'This file is not a Workout Log backup.') }),
       );
   };
 

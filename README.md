@@ -24,6 +24,7 @@ All data stays on your device (IndexedDB). There is no account and no server.
   - **Body-weight log** with a trend chart; the latest weight updates your targets.
   - **Home** shows today's calories and protein. The **calendar** marks food days as on target (±10%), over or under. **Trends** charts the last 7 or 28 days.
   - An estimate of calories burned in workouts is shown for information only, and isn't added to your budget.
+- **Share templates**: on Templates, ⤒ shares one template as a small file (WhatsApp, email, AirDrop), and "Export all" shares every template. A friend taps **Import** on their Templates page and picks the file. They see a preview, can rename anything that clashes with their own templates, and custom exercises used by the template are added for them. A file is used instead of a link because on iPhone a home-screen app keeps its data separate from Safari.
 - **Backup**: export all data (workouts and diet) to a file, and restore it on the same or a new phone (restoring replaces what's on the phone). Find it in Settings (⚙ on Home).
 
 ## Development

@@ -3,7 +3,7 @@
  * Every write notifies subscribers so open screens re-read fresh data.
  */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import { assert } from '../domain/assert';
+import { assert, newId } from '../domain/assert';
 import { templateNameError } from '../domain/templates';
 import type { FavoriteFood, Food, FoodLogEntry, Profile, Recipe, SavedMeal, WeightEntry } from '../domain/nutrition/foodTypes';
 import type { ActiveSession, Exercise, RestOverride, ScheduleEntry, Template, VideoOverride, Workout } from '../domain/types';
@@ -167,6 +167,32 @@ export function saveTemplate(template: Template): Promise<void> {
     const nameError = templateNameError(template.name, await tx.store.getAll(), template.id);
     assert(nameError === null, nameError ?? '');
     await tx.store.put(template);
+    await tx.done;
+  });
+}
+
+/**
+ * Add shared templates and the custom exercises they need, all or nothing.
+ * Custom exercises already on this phone are kept as they are; every template gets a fresh id.
+ */
+export function importTemplates(templates: readonly Omit<Template, 'id'>[], customExercises: readonly Exercise[]): Promise<void> {
+  return write(async (database) => {
+    const tx = database.transaction(['templates', 'customExercises'], 'readwrite');
+    const exerciseStore = tx.objectStore('customExercises');
+    for (const exercise of customExercises) {
+      if ((await exerciseStore.get(exercise.id)) === undefined) {
+        await exerciseStore.put(exercise);
+      }
+    }
+    const templateStore = tx.objectStore('templates');
+    const existing = await templateStore.getAll();
+    for (const template of templates) {
+      const created: Template = { ...template, id: newId() };
+      const nameError = templateNameError(created.name, existing, null);
+      assert(nameError === null, nameError ?? '');
+      await templateStore.put(created);
+      existing.push(created);
+    }
     await tx.done;
   });
 }
