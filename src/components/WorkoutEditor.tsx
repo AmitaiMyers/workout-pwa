@@ -5,6 +5,7 @@ import { formatDuration, formatNumber, formatSet, formatWeight } from '../domain
 import { missingFields, previousSets } from '../domain/stats';
 import type { Exercise, SetEntry, TrackingType, Workout, WorkoutExercise } from '../domain/types';
 import { moveItem, newWorkoutExercise, nextSet } from '../domain/workoutFactory';
+import { buzzSetDone } from '../state/alerts';
 import { saveRestOverride } from '../storage/db';
 import type { ExerciseCatalog } from '../storage/hooks';
 import { ExerciseBrowser } from './ExercisePicker';
@@ -257,6 +258,7 @@ function SetRow({ set, label, previous, tracking, mode, onChange, onOpenDetails,
       return;
     }
     patch({ done: true });
+    buzzSetDone();
     onCompleted();
   };
 

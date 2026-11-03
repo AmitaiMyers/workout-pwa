@@ -18,13 +18,17 @@ export function useWakeLock(enabled: boolean): void {
       if (holding || document.visibilityState !== 'visible') {
         return;
       }
-      void navigator.wakeLock.request('screen').then((lock) => {
-        if (disposed) {
-          void lock.release();
-          return;
-        }
-        sentinel = lock;
-      });
+      void navigator.wakeLock.request('screen').then(
+        (lock) => {
+          if (disposed) {
+            void lock.release();
+            return;
+          }
+          sentinel = lock;
+        },
+        // The browser may refuse (battery saver, Low Power Mode); the screen then times out normally.
+        (refusal: DOMException) => console.info(`Screen wake lock not granted: ${refusal.message}`),
+      );
     };
 
     acquire();

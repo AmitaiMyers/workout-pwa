@@ -26,13 +26,22 @@ function beep(context: AudioContext, startAt: number): void {
   oscillator.stop(startAt + 0.3);
 }
 
+/** Vibrate where supported. iOS browsers don't expose vibration to web pages, so it is feature-detected. */
+function vibrate(pattern: number | number[]): void {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(pattern);
+  }
+}
+
 export function playRestDoneAlert(): void {
   const context = audioContext;
   if (context !== null) {
     [0, 0.35, 0.7].forEach((offset) => beep(context, context.currentTime + offset));
   }
-  // Vibration is unavailable on iOS; feature-detect rather than assume.
-  if ('vibrate' in navigator) {
-    navigator.vibrate([200, 100, 200, 100, 200]);
-  }
+  vibrate([200, 100, 200, 100, 200]);
+}
+
+/** A short tap of feedback when a set is ticked done. */
+export function buzzSetDone(): void {
+  vibrate(40);
 }
